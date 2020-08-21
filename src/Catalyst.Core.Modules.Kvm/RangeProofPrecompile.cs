@@ -30,6 +30,8 @@ namespace Catalyst.Core.Modules.Kvm
     /// <inheritdoc />
     public sealed class RangeProofPrecompile : IPrecompiledContract
     {
+        private const int EthereumPrecompilesAddressingSpace = 0xffff;
+
         /// <inheritdoc />
         /// <summary>
         /// https: //github.com/ethereum/EIPs/blob/master/EIPS/eip-1352.md
@@ -37,7 +39,7 @@ namespace Catalyst.Core.Modules.Kvm
         /// </summary>
         public Address Address => AddressInKvm;
 
-        public static Address AddressInKvm { get; } = Address.FromNumber(3 + KatVirtualMachine.CatalystPrecompilesAddressingSpace);
+        public static Address AddressInKvm { get; } = Address.FromNumber(1 + EthereumPrecompilesAddressingSpace);
 
         /// <inheritdoc />
         public long BaseGasCost(IReleaseSpec releaseSpec) { return 200000; } // numbers need to be benchmarked

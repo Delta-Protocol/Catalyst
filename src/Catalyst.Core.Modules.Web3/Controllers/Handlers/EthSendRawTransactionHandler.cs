@@ -22,19 +22,16 @@
 #endregion
 
 using System;
-using System.IO;
 using Catalyst.Abstractions.Ledger;
 using Catalyst.Core.Lib.Extensions;
+using Catalyst.Protocol.Cryptography;
 using Catalyst.Protocol.Transaction;
-using Catalyst.Protocol.Wire;
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Nethermind.Core;
 using Nethermind.Core.Crypto;
 using Nethermind.Core.Encoding;
-using Nethermind.Core.Specs;
 using Nethermind.Dirichlet.Numerics;
-using Nethermind.Logging;
 
 namespace Catalyst.Core.Modules.Web3.Controllers.Handlers
 {
@@ -43,41 +40,25 @@ namespace Catalyst.Core.Modules.Web3.Controllers.Handlers
     {
         protected override Keccak Handle(byte[] transaction, IWeb3EthApi api)
         {
-            PublicEntry publicEntry;
-            try
+            Transaction tx = Rlp.Decode<Transaction>(transaction);
+
+            tx.Timestamp = (UInt256) DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+
+            PublicEntry publicEntry = new PublicEntry
             {
-                Transaction tx = Rlp.Decode<Transaction>(transaction);
-                EthereumEcdsa ecdsa = new EthereumEcdsa(MainNetSpecProvider.Instance, LimboLogs.Instance);
-                tx.SenderAddress = ecdsa.RecoverAddress(tx, MainNetSpecProvider.IstanbulBlockNumber);
-                tx.Timestamp = (UInt256) DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                publicEntry = new PublicEntry
+                Data = (tx.Data ?? tx.Init).ToByteString(),
+                GasLimit = (ulong) tx.GasLimit,
+                GasPrice = tx.GasPrice.ToUint256ByteString(),
+                Nonce = (ulong) tx.Nonce,
+                SenderAddress = new Address("0xb77aec9f59f9d6f39793289a09aea871932619ed").Bytes.ToByteString(),
+                ReceiverAddress = tx.To?.Bytes.ToByteString() ?? ByteString.Empty,
+                Amount = tx.Value.ToUint256ByteString(),
+                Timestamp = new Timestamp {Seconds = (long) tx.Timestamp},
+                Signature = new Protocol.Cryptography.Signature
                 {
-                    Data = (tx.Data ?? tx.Init).ToByteString(),
-                    GasLimit = (ulong) tx.GasLimit,
-                    GasPrice = tx.GasPrice.ToUint256ByteString(),
-                    Nonce = (ulong) tx.Nonce,
-                    SenderAddress = tx.SenderAddress.Bytes.ToByteString(),
-                    ReceiverAddress = tx.To?.Bytes.ToByteString() ?? ByteString.Empty,
-                    Amount = tx.Value.ToUint256ByteString(),
-                    Timestamp = new Timestamp {Seconds = (long) tx.Timestamp},
-                    Signature = new Protocol.Cryptography.Signature
-                    {
-                        RawBytes = ByteString.CopyFrom((byte) 1)
-                    }
-                };
-            }
-            catch
-            {
-                try
-                {
-                    TransactionBroadcast transactionBroadcast = TransactionBroadcast.Parser.ParseFrom(transaction);
-                    publicEntry = transactionBroadcast.PublicEntry;
+                    RawBytes = ByteString.CopyFrom((byte) 1)
                 }
-                catch (Exception)
-                {
-                    throw new InvalidDataException($"Transaction data could not be deserialized into a {nameof(PublicEntry)}");
-                }
-            }
+            };
 
             return api.SendTransaction(publicEntry);
         }

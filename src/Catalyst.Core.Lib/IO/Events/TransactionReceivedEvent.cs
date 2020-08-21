@@ -21,7 +21,6 @@
 
 #endregion
 
-using System;
 using Catalyst.Abstractions.IO.Events;
 using Catalyst.Abstractions.Mempool;
 using Catalyst.Abstractions.P2P.IO.Messaging.Broadcast;
@@ -32,10 +31,6 @@ using Catalyst.Core.Lib.Extensions;
 using Catalyst.Protocol.Rpc.Node;
 using Catalyst.Protocol.Transaction;
 using Catalyst.Protocol.Wire;
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
-using MultiFormats;
-using Nethermind.Core.Crypto;
 using Serilog;
 
 namespace Catalyst.Core.Lib.IO.Events
@@ -64,23 +59,10 @@ namespace Catalyst.Core.Lib.IO.Events
         public ResponseCode OnTransactionReceived(ProtocolMessage protocolMessage)
         {
             var transactionBroadcast = protocolMessage.FromProtocolMessage<TransactionBroadcast>();
-            PublicEntry publicEntry = transactionBroadcast.PublicEntry;
-            if (publicEntry.SenderAddress.Length == 32)
+            var transactionValid = _validator.ValidateTransaction(transactionBroadcast.PublicEntry);
+            if (!transactionValid)
             {
-                var transactionValid = _validator.ValidateTransaction(publicEntry);
-                if (!transactionValid)
-                {
-                    return ResponseCode.Error;
-                }
-                
-                byte[] kvmAddressBytes = Keccak.Compute(publicEntry.SenderAddress.ToByteArray()).Bytes.AsSpan(12).ToArray();
-                string hex = kvmAddressBytes.ToHexString() ?? throw new ArgumentNullException("kvmAddressBytes.ToHexString()");
-                publicEntry.SenderAddress = kvmAddressBytes.ToByteString();
-                
-                if (publicEntry.ReceiverAddress.Length == 1)
-                {
-                    publicEntry.ReceiverAddress = ByteString.Empty;
-                }
+                return ResponseCode.Error;
             }
 
             var transactionDao = transactionBroadcast.PublicEntry.ToDao<PublicEntry, PublicEntryDao>(_mapperProvider);

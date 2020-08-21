@@ -21,7 +21,6 @@
 
 #endregion
 
-using System;
 using System.Linq;
 using Catalyst.Abstractions.Mempool;
 using Catalyst.Abstractions.P2P.IO.Messaging.Broadcast;
@@ -36,7 +35,6 @@ using Catalyst.Protocol.Wire;
 using Catalyst.TestUtils;
 using FluentAssertions;
 using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using NSubstitute;
 using Serilog;
 using Xunit;
@@ -68,7 +66,7 @@ namespace Catalyst.Core.Lib.Tests.UnitTests.IO.Events
         {
             _transactionValidator.ValidateTransaction(Arg.Any<PublicEntry>())
                .Returns(false);
-            _transactionReceivedEvent.OnTransactionReceived(new TransactionBroadcast {PublicEntry = new PublicEntry{SenderAddress = new byte[32].ToByteString(), Timestamp = Timestamp.FromDateTime(DateTime.UtcNow)}}
+            _transactionReceivedEvent.OnTransactionReceived(new TransactionBroadcast {PublicEntry = new PublicEntry()}
                    .ToProtocolMessage(PeerIdHelper.GetPeerId(), CorrelationId.GenerateCorrelationId())).Should()
                .Be(ResponseCode.Error);
             _broadcastManager.DidNotReceiveWithAnyArgs()?.BroadcastAsync(default);

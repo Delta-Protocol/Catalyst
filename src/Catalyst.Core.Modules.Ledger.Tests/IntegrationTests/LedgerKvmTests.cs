@@ -119,7 +119,7 @@ namespace Catalyst.Core.Modules.Ledger.Tests.IntegrationTests
             var stateUpdateHashProvider = new StateUpdateHashProvider();
             _specProvider = new CatalystSpecProvider();
 
-            var kvm = new KatVirtualMachine(_stateProvider, _storageProvider, stateUpdateHashProvider, _specProvider, _hashProvider, _cryptoContext,
+            var kvm = new KatVirtualMachine(_stateProvider, _storageProvider, stateUpdateHashProvider, _specProvider,
                 LimboLogs.Instance);
             _deltaExecutor = new DeltaExecutor(_specProvider, _stateProvider, _storageProvider, kvm, new FfiWrapper(),
                 _logger);
